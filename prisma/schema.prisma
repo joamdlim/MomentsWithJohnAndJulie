@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Album {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  color     String   @default("#F2E8E0")
+  createdAt DateTime @default(now())
+  photos    Photo[]
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String
+  fileKey   String
+  albumId   String
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
