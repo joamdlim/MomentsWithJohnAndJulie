@@ -3,6 +3,8 @@ import { S3Client } from "@aws-sdk/client-s3";
 if (!process.env.R2_ACCOUNT_ID) throw new Error("R2_ACCOUNT_ID is missing");
 if (!process.env.R2_ACCESS_KEY_ID) throw new Error("R2_ACCESS_KEY_ID is missing");
 if (!process.env.R2_SECRET_ACCESS_KEY) throw new Error("R2_SECRET_ACCESS_KEY is missing");
+if (!process.env.R2_BUCKET_NAME) throw new Error("R2_BUCKET_NAME is missing");
+if (!process.env.R2_PUBLIC_URL) throw new Error("R2_PUBLIC_URL is missing");
 
 export const r2Client = new S3Client({
   region: "auto",

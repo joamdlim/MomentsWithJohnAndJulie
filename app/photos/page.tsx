@@ -1,10 +1,10 @@
 "use client";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { CornerAccent } from "@/components/CornerAccent";
 import { Camera, Plus, FolderOpen, Image } from "lucide-react";
 import { useState, useRef } from "react";
-import { getPresignedUrl } from "@/app/actions/upload";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -18,6 +18,7 @@ const fadeUp = {
 import { useEffect } from "react";
 
 export default function PhotosPage() {
+  const router = useRouter();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [albums, setAlbums] = useState<any[]>([]);
@@ -135,6 +136,7 @@ export default function PhotosPage() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
+              onClick={() => router.push(`/photos/${album.id}`)}
             >
               <motion.div
                 whileHover={{ scale: 1.02 }}
@@ -416,7 +418,7 @@ export default function PhotosPage() {
                     marginTop: 4,
                   }}
                 >
-                  {uploading ? "Please wait a moment" : "Directly uploads to MinIO"}
+                  {uploading ? "Please wait a moment" : "Securely stored in Cloudflare R2"}
                 </p>
               </div>
 
