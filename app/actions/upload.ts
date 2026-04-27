@@ -1,79 +1,88 @@
 "use server";
 
-import { ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/auth";
 
-const STORAGE_LIMIT_BYTES = 9.5 * 1024 * 1024 * 1024; // 9.5 GB
+const MAX_STORAGE_BYTES = 9.5 * 1024 * 1024 * 1024; // 9.5 GB limit
 
-async function getTotalStorageBytes(): Promise<number> {
-  try {
-    const bucketName = process.env.R2_BUCKET_NAME;
-    if (!bucketName) return 0;
+async function getTotalStorageUsed(bucketName: string): Promise<number> {
+  let totalSize = 0;
+  let isTruncated = true;
+  let continuationToken: string | undefined;
 
-    let totalBytes = 0;
-    let continuationToken: string | undefined;
+  while (isTruncated) {
+    const command: ListObjectsV2Command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      ContinuationToken: continuationToken,
+    });
 
-    do {
-      const cmd = new ListObjectsV2Command({
-        Bucket: bucketName,
-        ContinuationToken: continuationToken,
-      });
-      const result = await r2Client.send(cmd);
-      for (const obj of result.Contents || []) {
-        totalBytes += obj.Size || 0;
+    const response = await r2Client.send(command);
+    if (response.Contents) {
+      for (const item of response.Contents) {
+        totalSize += item.Size || 0;
       }
-      continuationToken = result.NextContinuationToken;
-    } while (continuationToken);
+    }
 
-    return totalBytes;
-  } catch {
-    return 0;
+    isTruncated = response.IsTruncated || false;
+    continuationToken = response.NextContinuationToken;
   }
+
+  return totalSize;
 }
 
 export async function uploadPhotoServerAction(formData: FormData, albumId: string) {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Please login to upload." };
+    const userId = session.user.id;
+
     const file = formData.get("file") as File;
-    if (!file) throw new Error("No file provided");
+    if (!file) return { success: false, error: "No file provided" };
 
     const bucketName = process.env.R2_BUCKET_NAME;
-    if (!bucketName) throw new Error("R2_BUCKET_NAME is missing");
+    const publicUrl = process.env.R2_PUBLIC_URL;
+    if (!bucketName || !publicUrl) return { success: false, error: "R2 not configured" };
 
-    // Check storage limit before uploading
-    const currentStorage = await getTotalStorageBytes();
-    if (currentStorage + file.size > STORAGE_LIMIT_BYTES) {
-      const usedGB = (currentStorage / 1024 / 1024 / 1024).toFixed(2);
-      return {
-        success: false,
-        error: `Storage limit reached (${usedGB} GB used of 9.5 GB). Please contact the couple to free up space.`,
-      };
+    // Check storage limit
+    const usedBytes = await getTotalStorageUsed(bucketName);
+    if (usedBytes + file.size > MAX_STORAGE_BYTES) {
+      return { success: false, error: "Global storage limit (9.5GB) reached." };
     }
 
-    // Cleaned file name
-    const safeRegex = /[^a-zA-Z0-9.\-_]/g;
-    const safeName = file.name.replace(safeRegex, "");
-    const fileKey = `${albumId === "general" ? "" : albumId + "/"}${crypto.randomUUID()}-${safeName}`;
+    // Ensure the album exists and user owns it or it's a shared album (if we had any)
+    const dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
+    if (!dbAlbum) return { success: false, error: "Album not found" };
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const fileExtension = file.name.split(".").pop();
+    const fileKey = `${albumId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: fileKey,
+      Body: fileBuffer,
       ContentType: file.type,
-      Body: buffer,
     });
 
-    // Upload directly to Cloudflare R2
     await r2Client.send(command);
 
-    revalidatePath("/photos");
-    revalidatePath("/home");
+    await prisma.photo.create({
+      data: {
+        url: `${publicUrl}/${fileKey}`,
+        fileKey: fileKey,
+        albumId: dbAlbum.id,
+        userId: userId,
+      }
+    });
+
+    revalidatePath("/");
 
     return { success: true };
   } catch (error: any) {
-    console.error("Upload error to Cloudflare R2:", error);
+    console.error("Upload error:", error);
     return { success: false, error: error.message };
   }
 }

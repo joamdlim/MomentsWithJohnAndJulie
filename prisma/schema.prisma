@@ -4,6 +4,16 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  albums    Album[]
+  photos    Photo[]
 }
 
 model Album {
@@ -11,6 +21,9 @@ model Album {
   slug      String   @unique
   name      String
   color     String   @default("#F2E8E0")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  votes     Int      @default(0)
   createdAt DateTime @default(now())
   photos    Photo[]
 }
@@ -20,6 +33,10 @@ model Photo {
   url       String
   fileKey   String
   albumId   String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  votes     Int      @default(0)
   album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
+

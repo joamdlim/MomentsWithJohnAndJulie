@@ -1,50 +1,22 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { Home, Calendar, Camera, Users } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Trophy, Heart, FolderOpen } from "lucide-react";
 
 const tabs = [
-  { id: "home",      label: "HOME",      icon: Home },
-  { id: "details",   label: "DETAILS",   icon: Calendar },
-  { id: "memories",  label: "MEMORIES",  icon: Camera },
-  { id: "entourage", label: "ENTOURAGE", icon: Users },
+  { id: "top",     label: "TOP",     icon: Trophy },
+  { id: "folders", label: "FOLDERS", icon: Heart },
+  { id: "mine",    label: "MINE",    icon: FolderOpen },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
 export function BottomNav() {
-  const [active, setActive] = useState<TabId>("home");
-  const locked = useRef(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const active = (searchParams.get("tab") as TabId) || "folders";
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (locked.current) return;
-      const mid = window.scrollY + window.innerHeight * 0.45;
-      const order: TabId[] = ["entourage", "memories", "details", "home"];
-      for (const id of order) {
-        const el = document.getElementById(id);
-        if (el && el.offsetTop <= mid) {
-          setActive(id);
-          break;
-        }
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollTo = (id: TabId) => {
-    if (pathname !== "/home") {
-      router.push("/home");
-      return;
-    }
-    locked.current = true;
-    setActive(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setTimeout(() => { locked.current = false; }, 1200);
+  const setTab = (id: TabId) => {
+    router.push(`/?tab=${id}`);
   };
 
   return (
@@ -55,19 +27,19 @@ export function BottomNav() {
         left: "50%",
         transform: "translateX(-50%)",
         width: "calc(100% - 32px)",
-        maxWidth: 400,
+        maxWidth: 380,
         background: "rgba(255,255,255,0.97)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
         borderRadius: 50,
         display: "flex",
         alignItems: "center",
-        height: 62,
+        justifyContent: "space-around",
+        height: 64,
         zIndex: 100,
-        boxShadow:
-          "0 8px 36px rgba(182,93,55,0.16), 0 2px 10px rgba(0,0,0,0.07)",
-        padding: "0 8px",
-        gap: 2,
+        boxShadow: "0 8px 36px rgba(182,93,55,0.16), 0 2px 10px rgba(0,0,0,0.07)",
+        padding: "0 12px",
+        gap: 8,
       }}
     >
       {tabs.map(({ id, label, icon: Icon }) => {
@@ -75,43 +47,39 @@ export function BottomNav() {
         return (
           <button
             key={id}
-            id={`nav-${id}`}
-            onClick={() => scrollTo(id)}
+            onClick={() => setTab(id)}
             style={{
               display: "flex",
               flexDirection: isActive ? "row" : "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: isActive ? 6 : 3,
+              gap: isActive ? 8 : 4,
               background: isActive ? "#B65D37" : "transparent",
               border: "none",
               borderRadius: 50,
-              padding: isActive ? "10px 18px" : "8px 4px",
+              padding: isActive ? "10px 20px" : "8px 12px",
               cursor: "pointer",
-              height: 46,
-              /* Active tab takes its natural size; inactive tabs share remaining space */
-              flex: isActive ? "0 0 auto" : 1,
-              transition:
-                "background 0.3s ease, padding 0.3s ease, gap 0.3s ease",
+              height: 48,
+              flex: isActive ? "1 1 auto" : "0 1 auto",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               whiteSpace: "nowrap",
               WebkitTapHighlightColor: "transparent",
               outline: "none",
             }}
           >
             <Icon
-              size={isActive ? 17 : 20}
-              strokeWidth={isActive ? 2.2 : 1.6}
+              size={isActive ? 18 : 22}
+              strokeWidth={isActive ? 2.5 : 1.8}
               color={isActive ? "#fff" : "#9B7B6E"}
             />
             <span
               style={{
                 fontFamily: "Inter, sans-serif",
-                fontSize: isActive ? 11 : 9,
+                fontSize: isActive ? 12 : 10,
                 fontWeight: isActive ? 600 : 400,
                 color: isActive ? "#fff" : "#9B7B6E",
-                letterSpacing: "0.07em",
+                letterSpacing: "0.05em",
                 lineHeight: 1,
-                marginTop: isActive ? 0 : 1,
               }}
             >
               {label}

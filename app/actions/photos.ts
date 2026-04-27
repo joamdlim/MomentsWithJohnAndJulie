@@ -2,171 +2,215 @@
 
 import { ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { getSession } from "@/lib/auth";
 
-export async function getAlbumPhotos(albumId: string): Promise<string[]> {
+export async function getAlbumPhotos(albumId: string): Promise<{url: string, fileKey: string, id: string, votes: number, userId: string | null}[]> {
   noStore();
   try {
     const bucketName = process.env.R2_BUCKET_NAME;
     const publicUrl = process.env.R2_PUBLIC_URL;
     if (!bucketName || !publicUrl) return [];
 
-    const prefix = albumId === "general" ? "" : albumId + "/";
-    const listCmd = new ListObjectsV2Command({
-      Bucket: bucketName,
-      Prefix: prefix,
-      MaxKeys: 1000,
+    let dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
+    if (!dbAlbum) return [];
+
+    const dbPhotos = await prisma.photo.findMany({ 
+      where: { albumId: dbAlbum.id },
+      orderBy: { createdAt: 'desc' }
     });
-    const objs = await r2Client.send(listCmd);
 
-    const photos = (objs.Contents || [])
-      .filter(c => {
-        if (!c.Key || c.Key.endsWith(".keep")) return false;
-        if (albumId === "general") return !c.Key.includes("/");
-        return true;
-      })
-      .sort((a, b) => (b.LastModified?.getTime() ?? 0) - (a.LastModified?.getTime() ?? 0))
-      .map(c => `${publicUrl}/${c.Key}`);
+    return dbPhotos.map((p: any) => ({
+      id: p.id,
+      url: p.url,
+      fileKey: p.fileKey,
+      votes: p.votes,
+      userId: p.userId
+    }));
 
-    return photos;
   } catch (error) {
-    console.error("Error fetching album photos from R2:", error);
+    console.error("Error fetching album photos:", error);
     return [];
   }
 }
 
 export async function getAlbums() {
-  noStore(); // Prevents Next.js aggressive caching for Server Action
+  noStore();
   try {
-    const bucketName = process.env.R2_BUCKET_NAME;
-    const publicUrl = process.env.R2_PUBLIC_URL;
-    if (!bucketName || !publicUrl) return [];
+    const session = await getSession();
+    const currentUserId = session?.user?.id;
 
-    // Delimiter "/" groups all objects into folders.
-    const command = new ListObjectsV2Command({ Bucket: bucketName, Delimiter: "/" });
-    const data = await r2Client.send(command).catch(err => {
-      console.log("Error finding common prefixes:", err);
-      return { CommonPrefixes: [] };
+    const dbAlbums = await prisma.album.findMany({
+      include: {
+        _count: {
+          select: { photos: true }
+        },
+        photos: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          select: { url: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
-    const prefixes = data.CommonPrefixes?.map(p => p.Prefix!.replace("/", "")) || [];
-
-    let albums = [];
-    let i = 0;
-
-    // Add "general" if the bucket has files at the root
-    if (data.Contents && data.Contents.length > 0) {
-      const rootPhotos = data.Contents.filter(c => !c.Key!.includes("/") && !c.Key!.endsWith(".keep"));
-      if (rootPhotos.length > 0) {
-        albums.push({
-          id: "general",
-          name: "General Photos",
-          photos: rootPhotos.map(c => `${publicUrl}/${c.Key}`),
-          color: "#F2E8E0",
-        });
-        i++;
-      }
-    }
-
-    if (prefixes.length === 0 && albums.length === 0) {
-      return [];
-    }
-
-    for (const prefix of prefixes) {
-      if (prefix === "general") continue;
-      // Get count of objects exactly in this folder
-      const listCmd = new ListObjectsV2Command({ Bucket: bucketName, Prefix: prefix + "/" });
-      const objs = await r2Client.send(listCmd);
-      const countObjs = objs.Contents ? objs.Contents.filter(c => !c.Key!.endsWith(".keep")) : [];
-      const photos = countObjs.map(c => `${publicUrl}/${c.Key}`);
-
-      albums.push({
-        id: prefix,
-        name: prefix.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-        photos,
-        color: i % 2 === 0 ? "#F2E8E0" : "#EDE5DC",
-      });
-      i++;
-    }
-
-    return albums;
+    return dbAlbums.map((album: any) => ({
+      id: album.slug,
+      name: album.name,
+      count: album._count.photos,
+      photos: album.photos.map((p: any) => p.url),
+      votes: album.votes,
+      isOwner: currentUserId ? album.userId === currentUserId : false
+    }));
   } catch (error) {
-    console.error("Error fetching albums from Cloudflare R2:", error);
+    console.error("Error listing albums:", error);
     return [];
   }
 }
 
 export async function createAlbumAction(name: string) {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Please login to create a folder." };
+    const userId = session.user.id;
+
+    // Check if user already has an album
+    const existing = await prisma.album.findFirst({ where: { userId } });
+    if (existing) return { success: false, error: "You can only create one folder." };
+
+    const slug = name.toLowerCase().trim().replace(/ /g, "-") + "-" + Math.random().toString(36).substring(7);
     const bucketName = process.env.R2_BUCKET_NAME;
-    if (!bucketName) return { success: false, error: "No bucket configured" };
+    if (!bucketName) return { success: false, error: "R2 bucket not configured." };
 
-    // Format id: "Table 4" -> "table-4"
-    const folderId = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-    // Upload a .keep file to force the folder to exist visibly in R2
+    // Create .keep in R2
     const command = new PutObjectCommand({
       Bucket: bucketName,
-      Key: `${folderId}/.keep`,
+      Key: `${slug}/.keep`,
       Body: "",
     });
-
     await r2Client.send(command);
 
-    revalidatePath("/photos");
-    revalidatePath("/home");
-    return { success: true, folderId };
+    await prisma.album.create({
+      data: {
+        slug,
+        name,
+        userId,
+      }
+    });
+
+    revalidatePath("/");
+    return { success: true, folderId: slug };
   } catch (error: any) {
-    console.error("Error creating folder in Cloudflare R2:", error);
+    console.error("Error creating folder:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function deleteAlbumAction(albumId: string) {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Authentication required." };
+    const userId = session.user.id;
+
+    const dbAlbum = await prisma.album.findUnique({ 
+      where: { slug: albumId },
+      include: { photos: true }
+    });
+
+    if (!dbAlbum) return { success: false, error: "Album not found." };
+    if (dbAlbum.userId !== userId) return { success: false, error: "You don't have permission to delete this bouquet." };
+
     const bucketName = process.env.R2_BUCKET_NAME;
-    if (!bucketName) return { success: false, error: "No bucket configured" };
+    if (!bucketName) return { success: false, error: "R2 bucket not configured." };
 
-    const prefix = albumId === "general" ? "" : albumId + "/";
-    const listCmd = new ListObjectsV2Command({ Bucket: bucketName, Prefix: prefix });
-    const objs = await r2Client.send(listCmd);
-
-    if (objs.Contents && objs.Contents.length > 0) {
-      for (const obj of objs.Contents) {
-        if (obj.Key) {
-          const deleteCmd = new DeleteObjectCommand({ Bucket: bucketName, Key: obj.Key });
-          await r2Client.send(deleteCmd);
-        }
-      }
+    // Delete photos from R2
+    for (const photo of dbAlbum.photos) {
+      const delCmd = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: photo.fileKey,
+      });
+      await r2Client.send(delCmd);
     }
 
-    revalidatePath("/home");
-    revalidatePath("/photos");
+    // Delete album folder from R2 (.keep)
+    const delKeep = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: `${albumId}/.keep`,
+    });
+    await r2Client.send(delKeep);
+
+    await prisma.album.delete({ where: { id: dbAlbum.id } });
+
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
-    console.error("Error deleting album in Cloudflare R2:", error);
+    console.error("Error deleting album:", error);
     return { success: false, error: error.message };
   }
 }
 
-export async function deletePhotoAction(photoUrl: string) {
+export async function deletePhotoAction(photoId: string) {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Authentication required." };
+    const userId = session.user.id;
+
+    const photo = await prisma.photo.findUnique({ 
+      where: { id: photoId },
+      include: { album: true }
+    });
+
+    if (!photo) return { success: false, error: "Photo not found." };
+    
+    // Allow deleting if user owns the photo OR owns the album
+    if (photo.userId !== userId && photo.album.userId !== userId) {
+      return { success: false, error: "You don't have permission to delete this photo." };
+    }
+
     const bucketName = process.env.R2_BUCKET_NAME;
-    const publicUrl = process.env.R2_PUBLIC_URL;
-    if (!bucketName || !publicUrl) return { success: false, error: "No bucket configured" };
+    if (bucketName) {
+      const delCmd = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: photo.fileKey,
+      });
+      await r2Client.send(delCmd);
+    }
 
-    const baseUrl = `${publicUrl}/`;
-    if (!photoUrl.startsWith(baseUrl)) return { success: false, error: "Invalid URL" };
-    const fileKey = photoUrl.slice(baseUrl.length);
+    await prisma.photo.delete({ where: { id: photoId } });
 
-    const command = new DeleteObjectCommand({ Bucket: bucketName, Key: fileKey });
-    await r2Client.send(command);
-
-    revalidatePath("/home");
-    revalidatePath("/photos");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
-    console.error("Error deleting photo in Cloudflare R2:", error);
+    console.error("Error deleting photo:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function voteAlbumAction(albumId: string) {
+  try {
+    await prisma.album.update({
+      where: { slug: albumId },
+      data: { votes: { increment: 1 } }
+    });
+    
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function votePhotoAction(photoId: string) {
+  try {
+    await prisma.photo.update({
+      where: { id: photoId },
+      data: { votes: { increment: 1 } }
+    });
+    
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
     return { success: false, error: error.message };
   }
 }

@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverActions: {
-    bodySizeLimit: "20mb", // Allow photo uploads up to 20 MB
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "20mb", // Allow photo uploads up to 20 MB
+    },
   },
   images: {
     remotePatterns: [
