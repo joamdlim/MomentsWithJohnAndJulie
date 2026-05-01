@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,6 +14,7 @@ model User {
   createdAt DateTime @default(now())
   albums    Album[]
   photos    Photo[]
+  vote      Vote?
 }
 
 model Album {
@@ -26,6 +27,7 @@ model Album {
   votes     Int      @default(0)
   createdAt DateTime @default(now())
   photos    Photo[]
+  voteRecords Vote[]
 }
 
 model Photo {
@@ -40,3 +42,11 @@ model Photo {
   createdAt DateTime @default(now())
 }
 
+model Vote {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  albumId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}

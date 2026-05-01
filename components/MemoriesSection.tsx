@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PolaroidBouquet } from "./PolaroidBouquet";
 import { Trophy, Heart, FolderOpen, Camera } from "lucide-react";
-import { getAlbums, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, votePhotoAction } from "@/app/actions/photos";
+import { getAlbums, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction } from "@/app/actions/photos";
 import { uploadPhotoServerAction } from "@/app/actions/upload";
 import { getCurrentUserAction } from "@/app/actions/auth";
 
@@ -49,15 +49,6 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
     loadAlbums();
   };
   
-  const handleVotePhoto = async (photoId: string) => {
-    await votePhotoAction(photoId);
-    // Reload photos for active album
-    if (activeAlbumId) {
-      const photos = await getAlbumPhotos(activeAlbumId);
-      setActivePhotos(photos);
-    }
-  };
-
   const handleDeleteAlbum = async (albumId: string) => {
     if (window.confirm("Are you sure you want to delete your folder and all its photos?")) {
       const res = await deleteAlbumAction(albumId);
@@ -182,7 +173,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
                         <p style={{ fontSize: 12, color: "#7A5E51" }}>by {album.name} · {album.count} photos</p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#B65D37", fontWeight: 600, fontSize: 14 }}>
-                        <Heart size={16} fill="#B65D37" />
+                        <Heart size={16} fill={album.hasVoted ? "#B65D37" : "none"} />
                         {album.votes}
                       </div>
                     </div>
@@ -196,7 +187,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
                 <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 28, color: "#2C1810", marginBottom: 32, textAlign: "center" }}>
                   A garden of bouquets
                 </h2>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px 16px", maxWidth: 600, margin: "0 auto" }}>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-8 gap-x-4 max-w-4xl mx-auto">
                   {albums.map((album) => (
                     <PolaroidBouquet
                       key={album.id}
@@ -207,6 +198,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
                       thumbnailUrl={album.photos[0]}
                       votes={album.votes}
                       isOwner={album.isOwner}
+                      hasVoted={album.hasVoted}
                       onClick={() => handleBouquetClick(album.id)}
                       onVote={() => handleVoteAlbum(album.id)}
                       onDelete={() => handleDeleteAlbum(album.id)}
@@ -250,6 +242,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
                       thumbnailUrl={myAlbum.photos[0]}
                       votes={myAlbum.votes}
                       isOwner={true}
+                      hasVoted={myAlbum.hasVoted}
                       onClick={() => handleBouquetClick(myAlbum.id)}
                       onDelete={() => handleDeleteAlbum(myAlbum.id)}
                     />
@@ -288,21 +281,14 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
             </div>
 
             {/* Photo Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {activePhotos.map((photo) => {
                 const isMyPhoto = currentUser && (photo.userId === currentUser.id || albums.find(a => a.id === activeAlbumId)?.isOwner);
                 return (
                   <div key={photo.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", background: "#FFF", padding: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                     <div style={{ width: "100%", height: "100%", background: `url(${photo.url}) center/cover`, borderRadius: 6 }} />
                     
-                    {/* Like button overlay */}
-                    <button
-                      onClick={() => handleVotePhoto(photo.id)}
-                      style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#B65D37", fontSize: 12, fontWeight: 600, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-                    >
-                      <Heart size={14} fill={photo.votes > 0 ? "#B65D37" : "none"} />
-                      {photo.votes}
-                    </button>
+
 
                     {/* Delete button overlay */}
                     {isMyPhoto && (
@@ -319,24 +305,26 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
             </div>
 
             {/* Add Photo Buttons */}
-            <div style={{ position: "fixed", bottom: 90, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 12, padding: "0 20px", zIndex: 50 }}>
-              <button
-                onClick={() => triggerUpload("environment")}
-                disabled={uploading}
-                style={{ flex: 1, maxWidth: 160, padding: "14px", background: "#B65D37", color: "#FFF", border: "none", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 500, cursor: "pointer", boxShadow: "0 4px 16px rgba(182,93,55,0.3)" }}
-              >
-                <Camera size={18} />
-                {uploading ? "Uploading..." : "Camera"}
-              </button>
-              <button
-                onClick={() => triggerUpload(undefined)}
-                disabled={uploading}
-                style={{ flex: 1, maxWidth: 160, padding: "14px", background: "#FFF", color: "#B65D37", border: "1px solid #E8D5C8", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 500, cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.05)" }}
-              >
-                <FolderOpen size={18} />
-                {uploading ? "Wait..." : "Gallery"}
-              </button>
-            </div>
+            {activeTab === "mine" && (
+              <div style={{ position: "fixed", bottom: 90, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 12, padding: "0 20px", zIndex: 50 }}>
+                <button
+                  onClick={() => triggerUpload("environment")}
+                  disabled={uploading}
+                  style={{ flex: 1, maxWidth: 160, padding: "14px", background: "#B65D37", color: "#FFF", border: "none", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 500, cursor: "pointer", boxShadow: "0 4px 16px rgba(182,93,55,0.3)" }}
+                >
+                  <Camera size={18} />
+                  {uploading ? "Uploading..." : "Camera"}
+                </button>
+                <button
+                  onClick={() => triggerUpload(undefined)}
+                  disabled={uploading}
+                  style={{ flex: 1, maxWidth: 160, padding: "14px", background: "#FFF", color: "#B65D37", border: "1px solid #E8D5C8", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 500, cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.05)" }}
+                >
+                  <FolderOpen size={18} />
+                  {uploading ? "Wait..." : "Gallery"}
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

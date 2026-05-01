@@ -15,6 +15,7 @@ interface PolaroidBouquetProps {
   onVote?: () => void;
   onDelete?: () => void;
   isExpanded?: boolean;
+  hasVoted?: boolean;
 }
 
 export function PolaroidBouquet({
@@ -29,7 +30,8 @@ export function PolaroidBouquet({
   onClick,
   onVote,
   onDelete,
-  isExpanded = false
+  isExpanded = false,
+  hasVoted = false
 }: PolaroidBouquetProps) {
   
   // Create 5 cards for the bouquet effect
@@ -237,7 +239,7 @@ export function PolaroidBouquet({
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
-                background: "rgba(182,93,55,0.08)",
+                background: hasVoted ? "rgba(182,93,55,0.2)" : "rgba(182,93,55,0.08)",
                 border: "none",
                 borderRadius: 12,
                 padding: "4px 10px",
@@ -248,7 +250,7 @@ export function PolaroidBouquet({
                 fontWeight: 500,
               }}
             >
-              <Heart size={14} fill={votes > 0 ? "#B65D37" : "none"} />
+              <Heart size={14} fill={hasVoted ? "#B65D37" : "none"} />
               {votes}
             </button>
           </div>

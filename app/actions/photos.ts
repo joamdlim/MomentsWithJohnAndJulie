@@ -50,7 +50,11 @@ export async function getAlbums() {
           take: 1,
           orderBy: { createdAt: 'desc' },
           select: { url: true }
-        }
+        },
+        voteRecords: currentUserId ? {
+          where: { userId: currentUserId },
+          take: 1
+        } : false
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -61,7 +65,8 @@ export async function getAlbums() {
       count: album._count.photos,
       photos: album.photos.map((p: any) => p.url),
       votes: album.votes,
-      isOwner: currentUserId ? album.userId === currentUserId : false
+      isOwner: currentUserId ? album.userId === currentUserId : false,
+      hasVoted: album.voteRecords && album.voteRecords.length > 0
     }));
   } catch (error) {
     console.error("Error listing albums:", error);
@@ -189,11 +194,35 @@ export async function deletePhotoAction(photoId: string) {
 
 export async function voteAlbumAction(albumId: string) {
   try {
-    await prisma.album.update({
-      where: { slug: albumId },
-      data: { votes: { increment: 1 } }
-    });
+    const session = await getSession();
+    if (!session) return { success: false, error: "Please login to vote." };
+    const userId = session.user.id;
+
+    const dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
+    if (!dbAlbum) return { success: false, error: "Album not found." };
+
+    const existingVote = await prisma.vote.findUnique({ where: { userId } });
     
+    if (existingVote) {
+      if (existingVote.albumId === dbAlbum.id) {
+        await prisma.$transaction([
+          prisma.vote.delete({ where: { id: existingVote.id } }),
+          prisma.album.update({ where: { id: dbAlbum.id }, data: { votes: { decrement: 1 } } })
+        ]);
+      } else {
+        await prisma.$transaction([
+          prisma.album.update({ where: { id: existingVote.albumId }, data: { votes: { decrement: 1 } } }),
+          prisma.vote.update({ where: { id: existingVote.id }, data: { albumId: dbAlbum.id } }),
+          prisma.album.update({ where: { id: dbAlbum.id }, data: { votes: { increment: 1 } } })
+        ]);
+      }
+    } else {
+      await prisma.$transaction([
+        prisma.vote.create({ data: { userId, albumId: dbAlbum.id } }),
+        prisma.album.update({ where: { id: dbAlbum.id }, data: { votes: { increment: 1 } } })
+      ]);
+    }
+
     revalidatePath("/");
     return { success: true };
   } catch (error: any) {
@@ -201,16 +230,3 @@ export async function voteAlbumAction(albumId: string) {
   }
 }
 
-export async function votePhotoAction(photoId: string) {
-  try {
-    await prisma.photo.update({
-      where: { id: photoId },
-      data: { votes: { increment: 1 } }
-    });
-    
-    revalidatePath("/");
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}

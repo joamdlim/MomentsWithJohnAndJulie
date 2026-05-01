@@ -25,7 +25,7 @@ function SplashContent() {
 
   const handleLogout = async () => {
     await logoutAction();
-    setUser(null);
+    window.location.href = "/";
   };
 
   // If there's already a tab param, skip splash
@@ -40,7 +40,7 @@ function SplashContent() {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        onAuthSuccess={() => getCurrentUserAction().then(setUser)} 
+        onAuthSuccess={() => { window.location.href = "/?tab=mine"; }} 
       />
 
       <AnimatePresence mode="wait">

@@ -56,6 +56,12 @@ export async function uploadPhotoServerAction(formData: FormData, albumId: strin
     const dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
     if (!dbAlbum) return { success: false, error: "Album not found" };
 
+    // Limit to 10 photos per folder
+    const photoCount = await prisma.photo.count({ where: { albumId: dbAlbum.id } });
+    if (photoCount >= 10) {
+      return { success: false, error: "Limit of 10 photos per folder reached." };
+    }
+
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileExtension = file.name.split(".").pop();
     const fileKey = `${albumId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
