@@ -25,7 +25,12 @@ export async function login(user: { id: string, username: string }) {
   const session = await encrypt({ user, expires });
 
   // Save the session in a cookie
-  (await cookies()).set("session", session, { expires, httpOnly: true });
+  (await cookies()).set("session", session, { 
+    expires, 
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
 }
 
 export async function logout() {
@@ -52,6 +57,8 @@ export async function updateSession(request: NextRequest) {
     value: await encrypt(parsed),
     httpOnly: true,
     expires: parsed.expires,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
   });
   return res;
 }

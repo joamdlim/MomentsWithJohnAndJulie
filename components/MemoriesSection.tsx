@@ -27,7 +27,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
   
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [captureSource, setCaptureSource] = useState<"environment" | "user">("environment");
+  const [captureSource, setCaptureSource] = useState<"environment" | "user" | undefined>(undefined);
 
   useEffect(() => {
     loadAlbums();
@@ -149,7 +149,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
   };
 
   const triggerUpload = (source: "environment" | "user" | undefined) => {
-    setCaptureSource(source || "environment");
+    setCaptureSource(source);
     setTimeout(() => {
       fileInputRef.current?.click();
     }, 100);
