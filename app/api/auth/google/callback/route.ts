@@ -99,8 +99,9 @@ export async function GET(request: NextRequest) {
 
     // 5. Redirect to home page
     return NextResponse.redirect(new URL("/", request.url));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Google Auth Callback Error:", error);
-    return NextResponse.redirect(new URL("/?error=internal_server_error", request.url));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.redirect(new URL(`/?error=internal_server_error&details=${encodeURIComponent(errorMessage)}`, request.url));
   }
 }
