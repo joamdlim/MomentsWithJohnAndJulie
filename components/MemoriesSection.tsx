@@ -6,6 +6,7 @@ import { Trophy, Heart, FolderOpen, Camera, Image as ImageIcon } from "lucide-re
 import { getAlbums, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, updateAlbumCoverAction } from "@/app/actions/photos";
 import { uploadPhotoServerAction, uploadCoverServerAction } from "@/app/actions/upload";
 import { getCurrentUserAction } from "@/app/actions/auth";
+import imageCompression from "browser-image-compression";
 
 // --- Main Section Component ---
 export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" | "mine" }) {
@@ -115,8 +116,17 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
     try {
       let coverUrl = undefined;
       if (coverFile) {
+        // Compress the cover image
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+          initialQuality: 0.8
+        };
+        const compressedCover = await imageCompression(coverFile, options);
+        
         const formData = new FormData();
-        formData.append("file", coverFile);
+        formData.append("file", compressedCover);
         const coverRes = await uploadCoverServerAction(formData);
         if (coverRes.success) {
           coverUrl = coverRes.url;
@@ -162,8 +172,18 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
       setUploading(true);
       try {
         const file = files[0];
+        
+        // Compress the polaroid photo
+        const options = {
+          maxSizeMB: 1.5,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          initialQuality: 0.8
+        };
+        const compressedFile = await imageCompression(file, options);
+        
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
         
         const res = await uploadPhotoServerAction(formData, targetId);
         if (res.success) {
