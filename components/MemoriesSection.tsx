@@ -236,7 +236,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
 
       {/* App Header Logo */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 32, marginTop: 16 }}>
-        <img src="/logo.png" alt="J&J Logo" style={{ height: 100, objectFit: "contain" }} />
+        <img src="/Logo.png" alt="J&J Logo" style={{ height: 100, objectFit: "contain" }} />
       </div>
 
       <AnimatePresence mode="wait">
