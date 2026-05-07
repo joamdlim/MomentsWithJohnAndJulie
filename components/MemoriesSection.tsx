@@ -258,7 +258,7 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
                 <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 28, color: "#2C1810", marginBottom: 32, textAlign: "center" }}>
                   A garden of bouquets
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-8 gap-x-4 max-w-4xl mx-auto">
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "48px 24px", maxWidth: 1000, margin: "0 auto" }}>
                   {albums.map((album) => (
                     <PolaroidBouquet
                       key={album.id}

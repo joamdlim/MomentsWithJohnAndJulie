@@ -64,9 +64,9 @@ export function PolaroidBouquet({
         cursor: !isExpanded ? "pointer" : "default",
         position: "relative",
         padding: "20px 10px",
-        width: "100%",
-        maxWidth: 200,
+        width: 160,
         margin: "0 auto",
+        flexShrink: 0,
       }}
     >
       {/* Delete button for owners */}
