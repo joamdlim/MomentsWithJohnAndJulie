@@ -234,6 +234,11 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
 
 
 
+      {/* App Header Logo */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 32, marginTop: 16 }}>
+        <img src="/logo.png" alt="J&J Logo" style={{ height: 100, objectFit: "contain" }} />
+      </div>
+
       <AnimatePresence mode="wait">
         {!activeAlbumId ? (
           <motion.div
@@ -244,9 +249,11 @@ export function MemoriesSection({ forcedTab }: { forcedTab?: "top" | "folders" |
           >
             {activeTab === "top" && (
               <div>
-                <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 28, color: "#2C1810", marginBottom: 24, textAlign: "center" }}>
-                  Most loved bouquets
-                </h2>
+                <div style={{ maxWidth: 400, margin: "0 auto" }}>
+                  <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontWeight: "bold", fontSize: 22, color: "#2C1810", marginBottom: 16, textAlign: "left" }}>
+                    Most loved bouquets
+                  </h2>
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 400, margin: "0 auto" }}>
                   {topAlbums.map((album, idx) => (
                     <div key={album.id} style={{ display: "flex", alignItems: "center", background: "#FFF", borderRadius: 16, padding: "16px", gap: 16, boxShadow: "0 2px 12px rgba(182,93,55,0.06)" }}>
