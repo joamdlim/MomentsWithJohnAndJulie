@@ -10,7 +10,8 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
-  password  String
+  password  String?
+  googleId  String?  @unique
   createdAt DateTime @default(now())
   albums    Album[]
   photos    Photo[]
@@ -21,6 +22,7 @@ model Album {
   id        String   @id @default(cuid())
   slug      String   @unique
   name      String
+  coverUrl  String?
   color     String   @default("#F2E8E0")
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])

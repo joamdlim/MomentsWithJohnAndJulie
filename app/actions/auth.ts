@@ -8,6 +8,7 @@ export async function registerAction(username: string, password: string) {
   try {
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) return { success: false, error: "Username already taken" };
+    if (!password) return { success: false, error: "Password is required" };
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
@@ -26,6 +27,10 @@ export async function loginAction(username: string, password: string) {
   try {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) return { success: false, error: "User not found" };
+
+    if (!user.password) {
+      return { success: false, error: "Please log in with Google" };
+    }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return { success: false, error: "Invalid password" };

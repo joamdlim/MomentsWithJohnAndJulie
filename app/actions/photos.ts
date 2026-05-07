@@ -64,6 +64,7 @@ export async function getAlbums() {
       name: album.name,
       count: album._count.photos,
       photos: album.photos.map((p: any) => p.url),
+      coverUrl: album.coverUrl,
       votes: album.votes,
       isOwner: currentUserId ? album.userId === currentUserId : false,
       hasVoted: album.voteRecords && album.voteRecords.length > 0
@@ -74,7 +75,7 @@ export async function getAlbums() {
   }
 }
 
-export async function createAlbumAction(name: string) {
+export async function createAlbumAction(name: string, coverUrl?: string) {
   try {
     const session = await getSession();
     if (!session) return { success: false, error: "Please login to create a folder." };
@@ -101,6 +102,7 @@ export async function createAlbumAction(name: string) {
         slug,
         name,
         userId,
+        coverUrl,
       }
     });
 
@@ -108,6 +110,29 @@ export async function createAlbumAction(name: string) {
     return { success: true, folderId: slug };
   } catch (error: any) {
     console.error("Error creating folder:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateAlbumCoverAction(albumId: string, coverUrl: string) {
+  try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Authentication required." };
+    const userId = session.user.id;
+
+    const dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
+    if (!dbAlbum) return { success: false, error: "Album not found." };
+    if (dbAlbum.userId !== userId) return { success: false, error: "You don't have permission to update this bouquet." };
+
+    await prisma.album.update({
+      where: { id: dbAlbum.id },
+      data: { coverUrl }
+    });
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error updating cover:", error);
     return { success: false, error: error.message };
   }
 }

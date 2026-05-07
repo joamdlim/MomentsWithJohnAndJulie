@@ -1,16 +1,22 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Trophy, Heart, FolderOpen } from "lucide-react";
+import { Trophy, Folder, CircleUser, LogIn, LogOut } from "lucide-react";
 
 const tabs = [
   { id: "top",     label: "TOP",     icon: Trophy },
-  { id: "folders", label: "FOLDERS", icon: Heart },
-  { id: "mine",    label: "MINE",    icon: FolderOpen },
+  { id: "folders", label: "FOLDERS", icon: Folder },
+  { id: "mine",    label: "MINE",    icon: CircleUser },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
-export function BottomNav() {
+interface BottomNavProps {
+  user: { id: string; username: string } | null;
+  onLoginClick: () => void;
+  onLogoutClick: () => void;
+}
+
+export function BottomNav({ user, onLoginClick, onLogoutClick }: BottomNavProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const active = (searchParams.get("tab") as TabId) || "folders";
@@ -87,6 +93,47 @@ export function BottomNav() {
           </button>
         );
       })}
+
+      {/* Auth Button */}
+      <button
+        onClick={user ? onLogoutClick : onLoginClick}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 4,
+          background: "transparent",
+          border: "none",
+          borderRadius: 50,
+          padding: "8px 12px",
+          cursor: "pointer",
+          height: 48,
+          flex: "0 1 auto",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          whiteSpace: "nowrap",
+          WebkitTapHighlightColor: "transparent",
+          outline: "none",
+        }}
+      >
+        {user ? (
+          <LogOut size={22} strokeWidth={1.8} color="#9B7B6E" />
+        ) : (
+          <LogIn size={22} strokeWidth={1.8} color="#9B7B6E" />
+        )}
+        <span
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: 10,
+            fontWeight: 400,
+            color: "#9B7B6E",
+            letterSpacing: "0.05em",
+            lineHeight: 1,
+          }}
+        >
+          {user ? "LOGOUT" : "LOGIN"}
+        </span>
+      </button>
     </nav>
   );
 }

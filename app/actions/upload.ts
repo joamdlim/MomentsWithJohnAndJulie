@@ -92,3 +92,35 @@ export async function uploadPhotoServerAction(formData: FormData, albumId: strin
     return { success: false, error: error.message };
   }
 }
+
+export async function uploadCoverServerAction(formData: FormData) {
+  try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Please login to upload." };
+
+    const file = formData.get("file") as File;
+    if (!file) return { success: false, error: "No file provided" };
+
+    const bucketName = process.env.R2_BUCKET_NAME;
+    const publicUrl = process.env.R2_PUBLIC_URL;
+    if (!bucketName || !publicUrl) return { success: false, error: "R2 not configured" };
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const fileExtension = file.name.split(".").pop();
+    const fileKey = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: fileKey,
+      Body: fileBuffer,
+      ContentType: file.type,
+    });
+
+    await r2Client.send(command);
+
+    return { success: true, url: `${publicUrl}/${fileKey}` };
+  } catch (error: any) {
+    console.error("Upload cover error:", error);
+    return { success: false, error: error.message };
+  }
+}

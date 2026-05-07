@@ -16,6 +16,7 @@ interface PolaroidBouquetProps {
   onDelete?: () => void;
   isExpanded?: boolean;
   hasVoted?: boolean;
+  hideLikesCount?: boolean;
 }
 
 export function PolaroidBouquet({
@@ -31,7 +32,8 @@ export function PolaroidBouquet({
   onVote,
   onDelete,
   isExpanded = false,
-  hasVoted = false
+  hasVoted = false,
+  hideLikesCount = false
 }: PolaroidBouquetProps) {
   
   // Create 5 cards for the bouquet effect
@@ -221,8 +223,6 @@ export function PolaroidBouquet({
           fontSize: 12,
           color: "#7A5E51",
         }}>
-          <span>by {creatorName}</span>
-          <span>·</span>
           <span>{photoCount}</span>
           <Camera size={12} />
         </div>
@@ -251,7 +251,7 @@ export function PolaroidBouquet({
               }}
             >
               <Heart size={14} fill={hasVoted ? "#B65D37" : "none"} />
-              {votes}
+              {!hideLikesCount && votes}
             </button>
           </div>
         )}

@@ -145,29 +145,12 @@ function SplashContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
           >
-            {/* Header with Auth */}
-            <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", position: "relative", zIndex: 50 }}>
-              {user ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#5C3D2E", fontSize: 13, fontWeight: 500 }}>
-                    <UserIcon size={16} />
-                    {user.username}
-                  </div>
-                  <button onClick={handleLogout} style={{ background: "rgba(182, 93, 55, 0.1)", border: "none", borderRadius: 12, padding: "8px 12px", color: "#B65D37", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                    <LogOut size={14} />
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => setIsAuthModalOpen(true)} style={{ background: "#B65D37", border: "none", borderRadius: 12, padding: "8px 16px", color: "#FFF", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(182, 93, 55, 0.2)" }}>
-                  <LogIn size={14} />
-                  Login
-                </button>
-              )}
-            </div>
-
             <MemoriesSection forcedTab={activeTab} />
-            <BottomNav />
+            <BottomNav 
+              user={user} 
+              onLoginClick={() => setIsAuthModalOpen(true)} 
+              onLogoutClick={handleLogout} 
+            />
           </motion.div>
         )}
       </AnimatePresence>
