@@ -6,18 +6,32 @@ import { MemoriesSection } from "@/components/MemoriesSection";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthModal } from "@/components/AuthModal";
 import { getCurrentUserAction, logoutAction } from "@/app/actions/auth";
-import { LogIn, LogOut, User as UserIcon } from "lucide-react";
 
 function SplashContent() {
   const [showMain, setShowMain] = useState(false);
   const [user, setUser] = useState<{id: string, username: string} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [hasCheckedUser, setHasCheckedUser] = useState(false);
   const searchParams = useSearchParams();
   const activeTab = (searchParams.get("tab") as "top" | "folders" | "mine") || "folders";
 
   useEffect(() => {
-    getCurrentUserAction().then(setUser);
+    getCurrentUserAction().then((u) => {
+      setUser(u);
+      setHasCheckedUser(true);
+    });
   }, []);
+
+  // Auto-popup: show modal on first visit (no tab param) when not logged in
+  useEffect(() => {
+    if (hasCheckedUser && !user && !searchParams.has("tab")) {
+      // Small delay so the splash animation plays first
+      const timer = setTimeout(() => {
+        setIsAuthModalOpen(true);
+      }, 1600);
+      return () => clearTimeout(timer);
+    }
+  }, [hasCheckedUser, user, searchParams]);
 
   const handleEnter = () => {
     setShowMain(true);
@@ -91,7 +105,7 @@ function SplashContent() {
                 transition={{ delay: 0.4, duration: 1 }}
                 style={{ fontFamily: "'Abramo', 'Great Vibes', cursive", fontSize: "clamp(48px, 12vw, 76px)", color: "#C25A20", lineHeight: 1.1 }}
               >
-                John & Julie
+                John &amp; Julie
               </motion.div>
 
               <motion.div
@@ -145,7 +159,11 @@ function SplashContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <MemoriesSection forcedTab={activeTab} />
+            <MemoriesSection 
+              forcedTab={activeTab} 
+              user={user}
+              onLoginClick={() => setIsAuthModalOpen(true)}
+            />
             <BottomNav 
               user={user} 
               onLoginClick={() => setIsAuthModalOpen(true)} 
