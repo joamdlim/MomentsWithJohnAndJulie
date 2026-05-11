@@ -3,13 +3,13 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
 import { prisma } from "@/lib/prisma";
-import { revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { getSession } from "@/lib/auth";
 
 /**
- * ✅ Performance fix: replaced noStore() with unstable_cache + revalidateTag.
- * Previously every page load triggered a fresh DB query for every user simultaneously.
- * Now results are cached for 10 seconds and explicitly invalidated on mutations.
+ * ✅ Performance: unstable_cache caches the DB result for 10 seconds.
+ * Mutations call revalidatePath("/") which flushes the page cache,
+ * ensuring users always see fresh data after any change.
  */
 export const getAlbumPhotos = unstable_cache(
   async (albumId: string): Promise<{url: string, fileKey: string, id: string, votes: number, userId: string | null}[]> => {
@@ -35,10 +35,10 @@ export const getAlbumPhotos = unstable_cache(
     }
   },
   ["album-photos"],
-  { revalidate: 10, tags: ["album-photos"] }
+  { revalidate: 10 }
 );
 
-export const getAlbums = unstable_cache(
+const getAlbumsCached = unstable_cache(
   async (currentUserId?: string) => {
     try {
       const dbAlbums = await prisma.album.findMany({
@@ -77,13 +77,18 @@ export const getAlbums = unstable_cache(
     }
   },
   ["albums-list"],
-  { revalidate: 10, tags: ["albums"] }
+  { revalidate: 10 }
 );
 
-// Thin wrapper so callers don't need to pass userId directly
+// Public wrapper — resolves current user and calls the cached function
 export async function getAlbumsAction() {
   const session = await getSession();
-  return getAlbums(session?.user?.id);
+  return getAlbumsCached(session?.user?.id);
+}
+
+// Keep getAlbums as a named export for any legacy callers
+export async function getAlbums() {
+  return getAlbumsAction();
 }
 
 export async function createAlbumAction(name: string, coverUrl?: string) {
@@ -115,7 +120,7 @@ export async function createAlbumAction(name: string, coverUrl?: string) {
       data: { slug, name, userId, coverUrl },
     });
 
-    revalidateTag("albums"); // ✅ Targeted cache invalidation
+    revalidatePath("/");
     return { success: true, folderId: slug };
   } catch (error: any) {
     console.error("Error creating folder:", error);
@@ -139,7 +144,7 @@ export async function updateAlbumCoverAction(albumId: string, coverUrl: string) 
       data: { coverUrl },
     });
 
-    revalidateTag("albums");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Error updating cover:", error);
@@ -175,8 +180,7 @@ export async function deleteAlbumAction(albumId: string) {
 
     await prisma.album.delete({ where: { id: dbAlbum.id } });
 
-    revalidateTag("albums");
-    revalidateTag("album-photos");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting album:", error);
@@ -209,8 +213,7 @@ export async function deletePhotoAction(photoId: string) {
 
     await prisma.photo.delete({ where: { id: photoId } });
 
-    revalidateTag("albums");
-    revalidateTag("album-photos");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting photo:", error);
@@ -249,7 +252,7 @@ export async function voteAlbumAction(albumId: string) {
       ]);
     }
 
-    revalidateTag("albums");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
