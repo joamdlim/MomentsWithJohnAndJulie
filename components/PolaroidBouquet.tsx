@@ -155,15 +155,25 @@ export function PolaroidBouquet({
             {/* Inner photo area */}
             <div style={{
               flex: 1,
-              background: i === 2 && thumbnailUrl ? `url(${thumbnailUrl}) center/cover` : "#FDF7F2",
               borderRadius: 4,
               overflow: "hidden",
+              background: "#FDF7F2",
+              position: "relative",
             }}>
-               {i === 2 && !thumbnailUrl && (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
-                     <Camera size={24} color="#C9A96E" />
-                  </div>
-               )}
+              {i === 2 && thumbnailUrl ? (
+                <Image
+                  src={thumbnailUrl}
+                  alt={name}
+                  fill
+                  loading="lazy"
+                  sizes="100px"
+                  style={{ objectFit: "cover" }}
+                />
+              ) : i === 2 && !thumbnailUrl ? (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
+                  <Camera size={24} color="#C9A96E" />
+                </div>
+              ) : null}
             </div>
             {/* Polaroid caption space */}
             <div style={{
@@ -205,7 +215,7 @@ export function PolaroidBouquet({
       {/* Details */}
       <div style={{ marginTop: 12, textAlign: "center", width: "100%" }}>
         <h3 style={{
-          fontFamily: "Cormorant Garamond, serif",
+          fontFamily: "var(--font-cormorant, 'Cormorant Garamond', serif)",
           fontSize: 18,
           fontWeight: 600,
           color: "#2C1810",

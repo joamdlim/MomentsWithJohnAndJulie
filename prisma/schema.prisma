@@ -34,15 +34,16 @@ model Album {
 }
 
 model Photo {
-  id        String   @id @default(cuid())
-  url       String
-  fileKey   String
-  albumId   String
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  votes     Int      @default(0)
-  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  url          String
+  fileKey      String
+  albumId      String
+  userId       String?
+  storageBytes Int      @default(0)
+  user         User?    @relation(fields: [userId], references: [id])
+  votes        Int      @default(0)
+  album        Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
 }
 
 model Vote {

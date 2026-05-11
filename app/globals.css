@@ -23,6 +23,9 @@
   font-display: swap;
 }
 
+/* ─── next/font CSS variable aliases ──────────────────────────────────────── */
+/* next/font injects CSS vars: --font-cormorant, --font-cormorant-sc,           */
+/* --font-great-vibes, --font-inter. Use these as the base for all font stacks. */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 @import "tailwindcss";
@@ -51,7 +54,8 @@
 html, body {
   background: #F2E8E0;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  /* Use CSS variable injected by next/font, fallback to system sans-serif */
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
   color: #2C1810;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -94,6 +98,13 @@ html, body {
 }
 
 ::-webkit-scrollbar { width: 0; }
+
+/* ─── Skeleton Shimmer Animation ────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 /* ─── Splash Screen Responsive Background ──────────────────────────────────── */
 .splash-bg-photo {

@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { PolaroidBouquet } from "./PolaroidBouquet";
 import { Trophy, Heart, FolderOpen, Camera, Image as ImageIcon, Download, X as XIcon, LogIn } from "lucide-react";
-import { getAlbums, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, updateAlbumCoverAction } from "@/app/actions/photos";
+import { getAlbumsAction, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, updateAlbumCoverAction } from "@/app/actions/photos";
 import { uploadPhotoServerAction, uploadCoverServerAction } from "@/app/actions/upload";
-import { getCurrentUserAction } from "@/app/actions/auth";
 import imageCompression from "browser-image-compression";
 
 // --- Lightbox Component ---
@@ -24,6 +24,7 @@ function PhotoLightbox({ url, onClose }: { url: string; onClose: () => void }) {
       window.open(url, "_blank");
     }
   };
+  // --- Lightbox image: use standard img for the full-res view (not next/image)
   return (
     <AnimatePresence>
       <motion.div
@@ -36,6 +37,7 @@ function PhotoLightbox({ url, onClose }: { url: string; onClose: () => void }) {
           background: "rgba(20,10,5,0.75)",
           backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
           display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+          willChange: "opacity", // Promote to compositor layer
         }}
       >
         <motion.div
@@ -77,25 +79,28 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
   useEffect(() => {
     if (forcedTab) {
       setActiveTab(forcedTab);
-      setActiveAlbumId(null); // Reset view when switching tabs
+      setActiveAlbumId(null);
     }
   }, [forcedTab]);
   const [albums, setAlbums] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  
+  const [albumsLoading, setAlbumsLoading] = useState(true); // ✅ Skeleton loader state
+
   // Expanded state
   const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
   const [activePhotos, setActivePhotos] = useState<any[]>([]);
   const [myAlbumPhotos, setMyAlbumPhotos] = useState<any[]>([]);
-  
+
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [captureSource, setCaptureSource] = useState<"environment" | "user" | undefined>(undefined);
 
   useEffect(() => {
     loadAlbums();
-    getCurrentUserAction().then(setCurrentUser);
+    // ✅ Removed duplicate getCurrentUserAction() call — user is passed as a prop from page.tsx
   }, []);
+
+  // ✅ Use user prop directly as currentUser for photo ownership checks
+  const currentUser = user;
 
   const myAlbum = albums.find(a => a.isOwner);
 
@@ -106,8 +111,10 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
   }, [myAlbum?.id]);
 
   const loadAlbums = async () => {
-    const data = await getAlbums();
+    setAlbumsLoading(true);
+    const data = await getAlbumsAction(); // ✅ Uses cached action
     setAlbums(data);
+    setAlbumsLoading(false);
   };
 
   const handleBouquetClick = async (albumId: string) => {
@@ -296,9 +303,16 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
 
 
 
-      {/* App Header Logo */}
+      {/* App Header Logo — next/image with priority for LCP */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 32, marginTop: 16 }}>
-        <img src="/Logo.png" alt="J&J Logo" style={{ height: 100, objectFit: "contain" }} />
+        <Image
+          src="/Logo.png"
+          alt="J&J Logo"
+          width={200}
+          height={100}
+          priority
+          style={{ objectFit: "contain", height: 100, width: "auto" }}
+        />
       </div>
 
       <AnimatePresence mode="wait">
@@ -347,6 +361,25 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                 <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 28, color: "#2C1810", marginBottom: 32, textAlign: "center" }}>
                   A garden of bouquets
                 </h2>
+              {/* Albums Skeleton Loader */}
+              {albumsLoading ? (
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "48px 24px", maxWidth: 1000, margin: "0 auto" }}>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} style={{
+                      width: 160, display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+                      padding: "20px 10px",
+                    }}>
+                      <div style={{
+                        width: 100, height: 120, borderRadius: 8,
+                        background: "linear-gradient(90deg, #f0e4dc 25%, #faf0ea 50%, #f0e4dc 75%)",
+                        backgroundSize: "200% 100%",
+                        animation: "skeleton-shimmer 1.4s infinite",
+                      }} />
+                      <div style={{ width: 60, height: 12, borderRadius: 6, background: "#f0e4dc", animation: "skeleton-shimmer 1.4s infinite" }} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "48px 24px", maxWidth: 1000, margin: "0 auto" }}>
                   {albums.map((album) => (
                     <PolaroidBouquet
@@ -366,6 +399,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                     />
                   ))}
                 </div>
+              )}
               </div>
             )}
 
@@ -494,17 +528,26 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                         />
                      </div>
                      
-                     {/* Photo Grid */}
+                     {/* Photo Grid — next/image with lazy loading */}
                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-8">
                        {myAlbumPhotos.map((photo) => (
                          <div key={photo.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", background: "#FFF", padding: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", cursor: "pointer" }}>
                            <div
-                             onClick={() => setLightboxUrl(photo.url)}
-                             style={{ width: "100%", height: "100%", background: `url(${photo.url}) center/cover`, borderRadius: 6, transition: "transform 0.2s" }}
+                             style={{ position: "relative", width: "100%", height: "100%", borderRadius: 6, overflow: "hidden", transition: "transform 0.2s" }}
                              onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
                              onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                           />
-                           
+                             onClick={() => setLightboxUrl(photo.url)}
+                           >
+                             <Image
+                               src={photo.url}
+                               alt="Memory"
+                               fill
+                               loading="lazy"
+                               sizes="(max-width: 768px) 50vw, 33vw"
+                               style={{ objectFit: "cover", borderRadius: 6 }}
+                             />
+                           </div>
+
                            <button
                              onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
                              style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
@@ -555,7 +598,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                />
             </div>
 
-            {/* Photo Grid */}
+            {/* Photo Grid — next/image with lazy loading */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {activePhotos.map((photo) => {
                 const isAlbumOwner = albums.find(a => a.id === activeAlbumId)?.isOwner;
@@ -563,12 +606,21 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                 return (
                   <div key={photo.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", background: "#FFF", padding: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", cursor: "pointer" }}>
                     <div
-                      onClick={() => setLightboxUrl(photo.url)}
-                      style={{ width: "100%", height: "100%", background: `url(${photo.url}) center/cover`, borderRadius: 6, transition: "transform 0.2s" }}
+                      style={{ position: "relative", width: "100%", height: "100%", borderRadius: 6, overflow: "hidden", transition: "transform 0.2s" }}
                       onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
                       onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                    />
-                    
+                      onClick={() => setLightboxUrl(photo.url)}
+                    >
+                      <Image
+                        src={photo.url}
+                        alt="Memory"
+                        fill
+                        loading="lazy"
+                        sizes="(max-width: 768px) 50vw, 33vw"
+                        style={{ objectFit: "cover", borderRadius: 6 }}
+                      />
+                    </div>
+
                     {/* Set Cover button overlay */}
                     {isAlbumOwner && (
                       <button

@@ -1,5 +1,36 @@
 import type { Metadata, Viewport } from "next";
+import { Cormorant_Garamond, Cormorant_SC, Great_Vibes, Inter } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted via next/font — zero external requests, no FOUT, no CLS
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-cormorant",
+});
+
+const cormorantSC = Cormorant_SC({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-cormorant-sc",
+});
+
+const greatVibes = Great_Vibes({
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  variable: "--font-great-vibes",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "John & Julie — Wedding Day",
@@ -25,15 +56,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=Cormorant+SC:wght@300;400;500;600;700&family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="en"
+      className={`${cormorantGaramond.variable} ${cormorantSC.variable} ${greatVibes.variable} ${inter.variable}`}
+    >
       <body>
         <div className="app-shell">
           <div className="app-container">{children}</div>
