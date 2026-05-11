@@ -1,7 +1,8 @@
 /* ─── Canva Custom Fonts ──────────────────────────────────────────────────── */
-/* Drop your font files into /public/fonts/ then these @font-face rules apply  */
+/* If you have Abramo or Blosta font files, place them in /public/fonts/ and   */
+/* uncomment the @font-face blocks below. Currently using next/font fallbacks.  */
 
-/* Blosta — used for the date numerals on the splash screen (05, 16, 26)       */
+/*
 @font-face {
   font-family: 'Blosta';
   src: url('/fonts/Blosta.woff2') format('woff2'),
@@ -12,7 +13,6 @@
   font-display: swap;
 }
 
-/* Abramo — used for the script names "John" and "Julie" on the splash screen  */
 @font-face {
   font-family: 'Abramo';
   src: url('/fonts/Abramo.woff2') format('woff2'),
@@ -22,6 +22,7 @@
   font-style: normal;
   font-display: swap;
 }
+*/
 
 /* ─── next/font CSS variable aliases ──────────────────────────────────────── */
 /* next/font injects CSS vars: --font-cormorant, --font-cormorant-sc,           */
