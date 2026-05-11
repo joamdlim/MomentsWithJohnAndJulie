@@ -1,5 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { MemoriesSection } from "@/components/MemoriesSection";
@@ -76,16 +77,42 @@ function SplashContent() {
               overflow: "hidden",
             }}
           >
-            {/* Watercolor Background */}
-            <div style={{ position: "absolute", inset: 0, zIndex: 0, background: "#FFFDF9" }}>
-              <div style={{
-                position: "absolute",
-                top: "-5%",
-                right: "-5%",
-                width: "90%",
-                height: "90%",
-                background: "radial-gradient(ellipse at top right, rgba(246,220,203,0.3) 0%, transparent 70%)",
-                filter: "blur(40px)",
+            {/* Responsive Background System */}
+            <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+              {/* Photo Background (Mobile/Portrait only) */}
+              <div className="splash-bg-photo" style={{ width: "100%", height: "100%", position: "relative" }}>
+                <Image 
+                  src="/bg/Splash screen-bg.jpg" 
+                  alt="Background"
+                  fill
+                  priority
+                  quality={100}
+                  style={{
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
+                />
+              </div>
+
+              {/* Watercolor Background (Desktop/Landscape Fallback) */}
+              <div className="splash-bg-watercolor" style={{ position: "absolute", inset: 0, background: "#FFFDF9" }}>
+                <div style={{
+                  position: "absolute",
+                  top: "-5%",
+                  right: "-5%",
+                  width: "90%",
+                  height: "90%",
+                  background: "radial-gradient(ellipse at top right, rgba(246,220,203,0.3) 0%, transparent 70%)",
+                  filter: "blur(40px)",
+                }} />
+              </div>
+
+              {/* Soft overlay (only active on mobile with the photo) */}
+              <div className="splash-bg-overlay" style={{ 
+                position: "absolute", 
+                inset: 0, 
+                background: "linear-gradient(to bottom, rgba(245, 237, 228, 0.4), rgba(245, 237, 228, 0.6))",
+                backdropFilter: "blur(1px)"
               }} />
             </div>
 
