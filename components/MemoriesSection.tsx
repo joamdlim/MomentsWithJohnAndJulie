@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { PolaroidBouquet } from "./PolaroidBouquet";
-import { Trophy, Heart, FolderOpen, Camera, Image as ImageIcon, Download, X as XIcon, LogIn } from "lucide-react";
+import { Trophy, Heart, FolderOpen, Camera, Image as ImageIcon, Download, X as XIcon, LogIn, Loader2 } from "lucide-react";
 import { getAlbumsAction, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, updateAlbumCoverAction } from "@/app/actions/photos";
 import { getPresignedUrlAction, savePhotoMetadataAction } from "@/app/actions/upload";
 import imageCompression from "browser-image-compression";
@@ -263,34 +263,62 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
         };
         const compressedFile = await imageCompression(file, options);
         
-        const urlRes = await getPresignedUrlAction(compressedFile.name || "photo.jpg", compressedFile.type, targetId, false);
-        if (!urlRes.success || !urlRes.signedUrl || !urlRes.fileKey) {
-          alert("Failed to get upload URL: " + urlRes.error);
-          return;
+        const tempId = `temp-${Date.now()}`;
+        const tempUrl = URL.createObjectURL(compressedFile);
+        const tempPhoto = {
+          id: tempId,
+          url: tempUrl,
+          fileKey: "",
+          votes: 0,
+          userId: currentUser?.id,
+          isUploading: true
+        };
+
+        // Optimistically update UI
+        if (targetId === activeAlbumId) {
+          setActivePhotos(prev => [tempPhoto, ...prev]);
+        }
+        if (targetId === myAlbum?.id) {
+          setMyAlbumPhotos(prev => [tempPhoto, ...prev]);
         }
 
-        const uploadRes = await fetch(urlRes.signedUrl, {
-          method: "PUT",
-          body: compressedFile,
-          headers: { "Content-Type": compressedFile.type },
-        });
+        try {
+          const urlRes = await getPresignedUrlAction(compressedFile.name || "photo.jpg", compressedFile.type, targetId, false);
+          if (!urlRes.success || !urlRes.signedUrl || !urlRes.fileKey) {
+            throw new Error(urlRes.error || "Failed to get upload URL");
+          }
 
-        if (!uploadRes.ok) {
-          alert("Failed to upload photo to storage.");
-          return;
-        }
+          const uploadRes = await fetch(urlRes.signedUrl, {
+            method: "PUT",
+            body: compressedFile,
+            headers: { "Content-Type": compressedFile.type },
+          });
 
-        const res = await savePhotoMetadataAction(urlRes.fileKey, targetId, compressedFile.size);
-        if (res.success) {
+          if (!uploadRes.ok) {
+            throw new Error("Failed to upload photo to storage.");
+          }
+
+          const res = await savePhotoMetadataAction(urlRes.fileKey, targetId, compressedFile.size);
+          if (!res.success) {
+            throw new Error(res.error || "Failed to save photo metadata.");
+          }
+
           const photos = await getAlbumPhotos(targetId);
           if (activeAlbumId) setActivePhotos(photos);
           if (targetId === myAlbum?.id) setMyAlbumPhotos(photos);
           loadAlbums();
-        } else {
-          alert("Failed to upload: " + res.error);
+        } catch (err: any) {
+          alert("Upload error: " + err.message);
+          // Revert optimistic update
+          if (targetId === activeAlbumId) {
+            setActivePhotos(prev => prev.filter(p => p.id !== tempId));
+          }
+          if (targetId === myAlbum?.id) {
+            setMyAlbumPhotos(prev => prev.filter(p => p.id !== tempId));
+          }
+        } finally {
+          URL.revokeObjectURL(tempUrl);
         }
-      } catch (err: any) {
-        alert("Upload error: " + err.message);
       } finally {
         setUploading(false);
       }
@@ -562,7 +590,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                              style={{ position: "relative", width: "100%", height: "100%", borderRadius: 6, overflow: "hidden", transition: "transform 0.2s" }}
                              onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
                              onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                             onClick={() => setLightboxUrl(photo.url)}
+                             onClick={() => !photo.isUploading && setLightboxUrl(photo.url)}
                            >
                              <Image
                                src={photo.url}
@@ -571,23 +599,32 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                                unoptimized={true}
                                loading="lazy"
                                sizes="(max-width: 768px) 50vw, 33vw"
-                               style={{ objectFit: "cover", borderRadius: 6 }}
+                               style={{ objectFit: "cover", borderRadius: 6, opacity: photo.isUploading ? 0.6 : 1 }}
                              />
+                             {photo.isUploading && (
+                               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.4)", zIndex: 10 }}>
+                                 <Loader2 className="animate-spin" color="#B65D37" size={28} />
+                               </div>
+                             )}
                            </div>
 
-                           <button
-                             onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
-                             style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                           >
-                             <ImageIcon size={12} /> Change Cover
-                           </button>
+                           {!photo.isUploading && (
+                             <button
+                               onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
+                               style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                             >
+                               <ImageIcon size={12} /> Change Cover
+                             </button>
+                           )}
 
-                           <button
-                             onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
-                             style={{ position: "absolute", top: 12, right: 12, background: "rgba(182,93,55,0.8)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFF" }}
-                           >
-                             ×
-                           </button>
+                           {!photo.isUploading && (
+                             <button
+                               onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
+                               style={{ position: "absolute", top: 12, right: 12, background: "rgba(182,93,55,0.8)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFF" }}
+                             >
+                               ×
+                             </button>
+                           )}
                          </div>
                        ))}
                      </div>
@@ -636,7 +673,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                       style={{ position: "relative", width: "100%", height: "100%", borderRadius: 6, overflow: "hidden", transition: "transform 0.2s" }}
                       onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
                       onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                      onClick={() => setLightboxUrl(photo.url)}
+                      onClick={() => !photo.isUploading && setLightboxUrl(photo.url)}
                     >
                       <Image
                         src={photo.url}
@@ -645,12 +682,17 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                         unoptimized={true}
                         loading="lazy"
                         sizes="(max-width: 768px) 50vw, 33vw"
-                        style={{ objectFit: "cover", borderRadius: 6 }}
+                        style={{ objectFit: "cover", borderRadius: 6, opacity: photo.isUploading ? 0.6 : 1 }}
                       />
+                      {photo.isUploading && (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.4)", zIndex: 10 }}>
+                          <Loader2 className="animate-spin" color="#B65D37" size={28} />
+                        </div>
+                      )}
                     </div>
 
                     {/* Set Cover button overlay */}
-                    {isAlbumOwner && (
+                    {isAlbumOwner && !photo.isUploading && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
                         style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
@@ -660,7 +702,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                     )}
 
                     {/* Delete button overlay */}
-                    {isMyPhoto && (
+                    {isMyPhoto && !photo.isUploading && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
                         style={{ position: "absolute", top: 12, right: 12, background: "rgba(182,93,55,0.8)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFF" }}
