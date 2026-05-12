@@ -300,7 +300,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
     <div style={{
       background: "#FAF0EA",
       minHeight: "100vh",
-      padding: "24px 16px 100px",
+      padding: "24px 16px 200px",
       fontFamily: "Inter, sans-serif"
     }}>
       
@@ -575,7 +575,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                              onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
                              style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                            >
-                             <ImageIcon size={12} /> Cover
+                             <ImageIcon size={12} /> Change Cover
                            </button>
 
                            <button
@@ -651,7 +651,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                         onClick={(e) => { e.stopPropagation(); handleSetAsCover(photo.url); }}
                         style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 12, padding: "4px 8px", fontSize: 10, fontWeight: 600, color: "#B65D37", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                       >
-                        <ImageIcon size={12} /> Cover
+                        <ImageIcon size={12} /> Change Cover
                       </button>
                     )}
 
