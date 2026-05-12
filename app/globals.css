@@ -116,15 +116,8 @@ html, body {
   display: block; /* Shown on desktop by default */
 }
 
-.splash-bg-overlay {
-  display: none; /* Only needed for the photo background */
-}
-
 @media (max-width: 768px) {
   .splash-bg-photo {
-    display: block !important;
-  }
-  .splash-bg-overlay {
     display: block !important;
   }
   .splash-bg-watercolor {

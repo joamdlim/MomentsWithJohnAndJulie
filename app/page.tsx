@@ -65,6 +65,7 @@ function SplashContent() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
             transition={{ duration: 0.8, ease: [0.43, 0.13, 0.23, 0.96] }}
+            onClick={handleEnter}
             style={{
               position: "fixed",
               inset: 0,
@@ -75,6 +76,7 @@ function SplashContent() {
               justifyContent: "center",
               background: "#F5EDE4",
               overflow: "hidden",
+              cursor: "pointer",
             }}
           >
             {/* Responsive Background System */}
@@ -109,12 +111,11 @@ function SplashContent() {
                 />
               </div>
 
-              {/* Soft overlay (only active on mobile with the photo) */}
-              <div className="splash-bg-overlay" style={{ 
+              {/* Soft overlay — applies to both desktop and mobile */}
+              <div style={{ 
                 position: "absolute", 
                 inset: 0, 
-                background: "linear-gradient(to bottom, rgba(245, 237, 228, 0.4), rgba(245, 237, 228, 0.6))",
-                backdropFilter: "blur(1px)"
+                background: "linear-gradient(to bottom, rgba(245, 237, 228, 0.2), rgba(245, 237, 228, 0.35))",
               }} />
             </div>
 
@@ -154,24 +155,21 @@ function SplashContent() {
               </motion.p>
             </div>
 
-            <motion.button
-              onClick={handleEnter}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.3, duration: 0.8 }}
               style={{
                 position: "absolute",
                 bottom: 60,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 8,
+                pointerEvents: "none",
               }}
             >
-              <span style={{ fontFamily: "Cormorant SC, serif", fontSize: 11, letterSpacing: "0.4em", color: "#7A5442" }}>SCROLL</span>
+              <span style={{ fontFamily: "Cormorant SC, serif", fontSize: 11, letterSpacing: "0.4em", color: "#7A5442" }}>TAP ANYWHERE</span>
               <motion.div
                 animate={{ y: [0, 5, 0] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
@@ -179,7 +177,7 @@ function SplashContent() {
               >
                 ↓
               </motion.div>
-            </motion.button>
+            </motion.div>
           </motion.div>
         ) : (
           <motion.div
