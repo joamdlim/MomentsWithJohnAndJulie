@@ -124,8 +124,12 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
   };
 
   const handleVoteAlbum = async (albumId: string) => {
-    await voteAlbumAction(albumId);
-    loadAlbums();
+    const res = await voteAlbumAction(albumId);
+    if (!res?.success && res?.error) {
+      alert(res.error);
+    } else {
+      loadAlbums();
+    }
   };
   
   const handleDeleteAlbum = async (albumId: string) => {

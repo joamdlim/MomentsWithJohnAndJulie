@@ -229,6 +229,7 @@ export async function voteAlbumAction(albumId: string) {
 
     const dbAlbum = await prisma.album.findUnique({ where: { slug: albumId } });
     if (!dbAlbum) return { success: false, error: "Album not found." };
+    if (dbAlbum.userId === userId) return { success: false, error: "You cannot vote for your own folder." };
 
     const existingVote = await prisma.vote.findUnique({ where: { userId } });
 
