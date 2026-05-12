@@ -94,17 +94,19 @@ function SplashContent() {
                 />
               </div>
 
-              {/* Watercolor Background (Desktop/Landscape Fallback) */}
-              <div className="splash-bg-watercolor" style={{ position: "absolute", inset: 0, background: "#FFFDF9" }}>
-                <div style={{
-                  position: "absolute",
-                  top: "-5%",
-                  right: "-5%",
-                  width: "90%",
-                  height: "90%",
-                  background: "radial-gradient(ellipse at top right, rgba(246,220,203,0.3) 0%, transparent 70%)",
-                  filter: "blur(40px)",
-                }} />
+              {/* Desktop Photo Background */}
+              <div className="splash-bg-watercolor" style={{ width: "100%", height: "100%", position: "relative" }}>
+                <Image 
+                  src="/bg/Splash screen desktop.jpg" 
+                  alt="Background Desktop"
+                  fill
+                  priority
+                  quality={100}
+                  style={{
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
+                />
               </div>
 
               {/* Soft overlay (only active on mobile with the photo) */}
