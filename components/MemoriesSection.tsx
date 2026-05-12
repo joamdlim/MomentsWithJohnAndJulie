@@ -5,7 +5,7 @@ import Image from "next/image";
 import { PolaroidBouquet } from "./PolaroidBouquet";
 import { Trophy, Heart, FolderOpen, Camera, Image as ImageIcon, Download, X as XIcon, LogIn } from "lucide-react";
 import { getAlbumsAction, getAlbumPhotos, createAlbumAction, deleteAlbumAction, deletePhotoAction, voteAlbumAction, updateAlbumCoverAction } from "@/app/actions/photos";
-import { uploadPhotoServerAction, uploadCoverServerAction } from "@/app/actions/upload";
+import { getPresignedUrlAction, savePhotoMetadataAction } from "@/app/actions/upload";
 import imageCompression from "browser-image-compression";
 
 // --- Lightbox Component ---
@@ -194,15 +194,23 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
         };
         const compressedCover = await imageCompression(coverFile, options);
         
-        const formData = new FormData();
-        formData.append("file", compressedCover);
-        const coverRes = await uploadCoverServerAction(formData);
-        if (coverRes.success) {
-          coverUrl = coverRes.url;
-        } else {
-          alert("Failed to upload cover: " + coverRes.error);
+        const urlRes = await getPresignedUrlAction(compressedCover.name || "cover.jpg", compressedCover.type, undefined, true);
+        if (!urlRes.success || !urlRes.signedUrl) {
+          alert("Failed to get upload URL: " + urlRes.error);
           return;
         }
+
+        const uploadRes = await fetch(urlRes.signedUrl, {
+          method: "PUT",
+          body: compressedCover,
+          headers: { "Content-Type": compressedCover.type },
+        });
+
+        if (!uploadRes.ok) {
+          alert("Failed to upload cover to storage.");
+          return;
+        }
+        coverUrl = urlRes.publicUrl;
       }
 
       const res = await createAlbumAction(newFolderName, coverUrl);
@@ -251,10 +259,24 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
         };
         const compressedFile = await imageCompression(file, options);
         
-        const formData = new FormData();
-        formData.append("file", compressedFile);
-        
-        const res = await uploadPhotoServerAction(formData, targetId);
+        const urlRes = await getPresignedUrlAction(compressedFile.name || "photo.jpg", compressedFile.type, targetId, false);
+        if (!urlRes.success || !urlRes.signedUrl || !urlRes.fileKey) {
+          alert("Failed to get upload URL: " + urlRes.error);
+          return;
+        }
+
+        const uploadRes = await fetch(urlRes.signedUrl, {
+          method: "PUT",
+          body: compressedFile,
+          headers: { "Content-Type": compressedFile.type },
+        });
+
+        if (!uploadRes.ok) {
+          alert("Failed to upload photo to storage.");
+          return;
+        }
+
+        const res = await savePhotoMetadataAction(urlRes.fileKey, targetId, compressedFile.size);
         if (res.success) {
           const photos = await getAlbumPhotos(targetId);
           if (activeAlbumId) setActivePhotos(photos);
@@ -542,6 +564,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                                src={photo.url}
                                alt="Memory"
                                fill
+                               unoptimized={true}
                                loading="lazy"
                                sizes="(max-width: 768px) 50vw, 33vw"
                                style={{ objectFit: "cover", borderRadius: 6 }}
@@ -615,6 +638,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                         src={photo.url}
                         alt="Memory"
                         fill
+                        unoptimized={true}
                         loading="lazy"
                         sizes="(max-width: 768px) 50vw, 33vw"
                         style={{ objectFit: "cover", borderRadius: 6 }}

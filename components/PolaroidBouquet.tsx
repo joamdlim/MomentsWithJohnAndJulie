@@ -165,6 +165,7 @@ export function PolaroidBouquet({
                   src={thumbnailUrl}
                   alt={name}
                   fill
+                  unoptimized={true}
                   loading="lazy"
                   sizes="100px"
                   style={{ objectFit: "cover" }}
