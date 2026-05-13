@@ -1,0 +1,26 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalCount: 100
+      name: "100 Total Users Over 30 Seconds"
+      # Note: 50 req/sec sustained generally simulates hundreds of concurrent users
+      
+  # Optional plugins if needed
+  # plugins:
+  #   ensure: {}
+  
+scenarios:
+  - name: "Browse Homepage and Tabs"
+    flow:
+      - get:
+          url: "/"
+      - think: 1
+      - get:
+          url: "/?tab=top"
+      - think: 1
+      - get:
+          url: "/?tab=folders"
+      - think: 2
+      - get:
+          url: "/?tab=mine"

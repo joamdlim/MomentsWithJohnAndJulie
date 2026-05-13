@@ -24,3 +24,13 @@ dev.db-journal
 # OS files
 .DS_Store
 Thumbs.db
+
+# Testing (Playwright)
+playwright-report/
+test-results/
+
+# Deployment & Caching
+.vercel/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

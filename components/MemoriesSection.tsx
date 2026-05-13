@@ -358,7 +358,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
 
 
       {/* App Header Logo — next/image with priority for LCP */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 32, marginTop: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32, marginTop: 16 }}>
         <Image
           src="/Logo.png"
           alt="J&J Logo"
@@ -367,6 +367,9 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
           priority
           style={{ objectFit: "contain", height: 100, width: "auto" }}
         />
+        <h1 style={{ fontFamily: "var(--font-lucy), cursive", fontSize: "clamp(36px, 8vw, 48px)", color: "#C25A20", marginTop: 16, textAlign: "center", lineHeight: 1.1, fontWeight: "normal" }}>
+          Moments with John and Julie
+        </h1>
       </div>
 
       <AnimatePresence mode="wait">
@@ -412,9 +415,11 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
 
             {activeTab === "folders" && (
               <div>
-                <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 28, color: "#2C1810", marginBottom: 32, textAlign: "center" }}>
-                  A garden of bouquets
-                </h2>
+                <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+                  <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontWeight: "bold", fontSize: 22, color: "#2C1810", marginBottom: 24, textAlign: "left" }}>
+                    A garden of bouquets
+                  </h2>
+                </div>
               {/* Albums Skeleton Loader */}
               {albumsLoading ? (
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "48px 24px", maxWidth: 1000, margin: "0 auto" }}>

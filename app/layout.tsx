@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Cormorant_SC, Great_Vibes, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // Self-hosted via next/font — zero external requests, no FOUT, no CLS
@@ -32,6 +33,12 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const lucySaidOk = localFont({
+  src: "../public/fonts/GreatVibes-Regular.ttf",
+  variable: "--font-lucy",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "John & Julie — Wedding Day",
   description:
@@ -58,7 +65,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorantGaramond.variable} ${cormorantSC.variable} ${greatVibes.variable} ${inter.variable}`}
+      className={`${cormorantGaramond.variable} ${cormorantSC.variable} ${greatVibes.variable} ${inter.variable} ${lucySaidOk.variable}`}
     >
       <body>
         <div className="app-shell">
