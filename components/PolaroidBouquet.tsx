@@ -16,6 +16,7 @@ interface PolaroidBouquetProps {
   onDelete?: () => void;
   isExpanded?: boolean;
   hasVoted?: boolean;
+  hasVotedAny?: boolean;
   hideLikesCount?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function PolaroidBouquet({
   onDelete,
   isExpanded = false,
   hasVoted = false,
+  hasVotedAny = false,
   hideLikesCount = false
 }: PolaroidBouquetProps) {
   
@@ -229,43 +231,26 @@ export function PolaroidBouquet({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 6,
+          gap: 12,
           fontFamily: "Inter, sans-serif",
           fontSize: 12,
           color: "#7A5E51",
         }}>
-          <span>{photoCount}</span>
-          <Camera size={12} />
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span>{photoCount}</span>
+            <Camera size={12} />
+          </span>
+          {!hideLikesCount ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#B65D37", fontWeight: 600 }}>
+              <span>{votes}</span>
+              <Heart size={12} fill={hasVoted ? "#B65D37" : "none"} color="#B65D37" />
+            </span>
+          ) : hasVoted ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#B65D37" }}>
+              <Heart size={14} fill="#B65D37" color="#B65D37" />
+            </span>
+          ) : null}
         </div>
-
-        {/* Voting section */}
-        {onVote && (
-          <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onVote();
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: hasVoted ? "rgba(182,93,55,0.2)" : "rgba(182,93,55,0.08)",
-                border: "none",
-                borderRadius: 12,
-                padding: "4px 10px",
-                cursor: "pointer",
-                color: "#B65D37",
-                fontFamily: "Inter, sans-serif",
-                fontSize: 12,
-                fontWeight: 500,
-              }}
-            >
-              <Heart size={14} fill={hasVoted ? "#B65D37" : "none"} />
-              {!hideLikesCount && votes}
-            </button>
-          </div>
-        )}
       </div>
     </motion.div>
   );

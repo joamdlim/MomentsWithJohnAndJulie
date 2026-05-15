@@ -43,12 +43,7 @@ function SplashContent() {
     window.location.href = "/";
   };
 
-  // If there's already a tab param, skip splash
-  useEffect(() => {
-    if (searchParams.has("tab")) {
-      setShowMain(true);
-    }
-  }, [searchParams]);
+  // Removed splash skip effect to ensure it shows on every refresh
 
   return (
     <main style={{ background: "#F5EDE4", minHeight: "100vh" }}>

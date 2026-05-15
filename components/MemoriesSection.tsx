@@ -84,6 +84,7 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
   }, [forcedTab]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [albumsLoading, setAlbumsLoading] = useState(true); // ✅ Skeleton loader state
+  const [isVotingMode, setIsVotingMode] = useState(false);
 
   // Expanded state
   const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
@@ -415,11 +416,32 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
 
             {activeTab === "folders" && (
               <div>
-                <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-                  <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontWeight: "bold", fontSize: 22, color: "#2C1810", marginBottom: 24, textAlign: "left" }}>
+                <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                  <h2 style={{ fontFamily: "Cormorant Garamond, serif", fontWeight: "bold", fontSize: 22, color: "#2C1810", textAlign: "left", margin: 0 }}>
                     A garden of bouquets
                   </h2>
+                  <button
+                    onClick={() => setIsVotingMode(!isVotingMode)}
+                    style={{
+                      background: isVotingMode ? "#FDF7F2" : albums.some(a => a.hasVoted) ? "#FDF7F2" : "#B65D37",
+                      color: isVotingMode ? "#B65D37" : albums.some(a => a.hasVoted) ? "#B65D37" : "#FFF",
+                      border: isVotingMode || albums.some(a => a.hasVoted) ? "1px solid #B65D37" : "none",
+                      borderRadius: 16,
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isVotingMode ? "Cancel" : albums.some(a => a.hasVoted) ? "Change Vote" : "Vote"}
+                  </button>
                 </div>
+                {isVotingMode && (
+                  <p style={{ textAlign: "center", color: "#B65D37", marginBottom: 24, fontSize: 14, fontWeight: 500, background: "rgba(182,93,55,0.1)", padding: "12px", borderRadius: "12px" }}>
+                    Tap a bouquet to cast your vote!
+                  </p>
+                )}
               {/* Albums Skeleton Loader */}
               {albumsLoading ? (
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "48px 24px", maxWidth: 1000, margin: "0 auto" }}>
@@ -451,9 +473,16 @@ export function MemoriesSection({ forcedTab, user, onLoginClick }: { forcedTab?:
                       votes={album.votes}
                       isOwner={album.isOwner}
                       hasVoted={album.hasVoted}
+                      hasVotedAny={albums.some(a => a.hasVoted)}
                       hideLikesCount={true}
-                      onClick={() => handleBouquetClick(album.id)}
-                      onVote={() => handleVoteAlbum(album.id)}
+                      onClick={() => {
+                        if (isVotingMode) {
+                          handleVoteAlbum(album.id);
+                          setIsVotingMode(false);
+                        } else {
+                          handleBouquetClick(album.id);
+                        }
+                      }}
                       onDelete={() => handleDeleteAlbum(album.id)}
                     />
                   ))}
